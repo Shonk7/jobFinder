@@ -36,20 +36,26 @@ GitHub Actions handles CI only. Vercel and Render deploy from GitHub automatical
 4. When prompted for `sync: false` env vars, enter:
    ```
    DATABASE_URL=<your Neon connection string>
-   FRONTEND_URL=https://<your-vercel-project>.vercel.app
+   FRONTEND_URL=https://<your-vercel-project-name>.vercel.app
    ```
+   > You choose your Vercel project name in the next step — pick it now and use it here.
+   > Render service names are predictable too: the backend will be at
+   > `https://jobapp-backend.onrender.com` (matching the `name:` in render.yaml).
+   > If Render appends a suffix (e.g. `jobapp-backend-abc1`), update `FRONTEND_URL`
+   > in the Render dashboard after Vercel is deployed and redeploy the backend.
 5. Finish the Blueprint. This creates `jobapp-backend` and `jobapp-redis`.
-6. Note your backend URL: `https://jobapp-backend.onrender.com`
 
 ### 3. Vercel (Frontend)
 
 1. In Vercel, click **Add New → Project** and import this GitHub repo.
 2. Set the **Root Directory** to `frontend`.
-3. Add this environment variable:
+3. When asked for a project name, use the same name you chose in step 2 above.
+4. Add this environment variable:
    ```
    NEXT_PUBLIC_API_URL=https://jobapp-backend.onrender.com/api/v1
    ```
-4. Deploy.
+   (Adjust if Render gave your backend a different URL.)
+5. Deploy.
 
 ## What Changed in This Repo
 
@@ -60,11 +66,11 @@ GitHub Actions handles CI only. Vercel and Render deploy from GitHub automatical
 
 ## Backend Runtime
 
-- Build: `npm ci && npm run generate && npm run build && npx prisma db push`
+- Build: `npm ci && npm run generate && npm run build`
 - Start: `npm start`
 - Health check: `/api/v1/health`
 
-`prisma db push` runs at build time so the Neon schema stays in sync on every deploy.
+After the first successful deploy, run `npx prisma db push` once from the Render backend Shell to initialize the Neon schema.
 
 ## Updating URLs
 
