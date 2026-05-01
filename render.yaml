@@ -6,7 +6,7 @@ services:
     region: oregon
     rootDir: backend
     buildCommand: npm ci --include=dev && npm run generate && npm run build
-    startCommand: npm start
+    startCommand: npx prisma db push && npm start
     autoDeployTrigger: checksPass
     healthCheckPath: /api/v1/health
     envVars:

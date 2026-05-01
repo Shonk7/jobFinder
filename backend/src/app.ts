@@ -8,6 +8,9 @@ import routes from './routes/index';
 
 const app = express();
 
+// Render runs behind a reverse proxy, so trust forwarded headers.
+app.set('trust proxy', 1);
+
 app.use(
   helmet({
     contentSecurityPolicy: {
