@@ -5,7 +5,7 @@ services:
     plan: free
     region: oregon
     rootDir: backend
-    buildCommand: npm ci && npm run generate && npm run build
+    buildCommand: npm ci --include=dev && npm run generate && npm run build
     startCommand: npm start
     autoDeployTrigger: checksPass
     healthCheckPath: /api/v1/health
