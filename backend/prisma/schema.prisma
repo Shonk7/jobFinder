@@ -8,21 +8,22 @@ datasource db {
 }
 
 model User {
-  id           String    @id @default(uuid())
-  email        String    @unique
-  passwordHash String    @map("password_hash")
-  firstName    String    @map("first_name")
-  lastName     String    @map("last_name")
-  isVerified   Boolean   @default(false) @map("is_verified")
-  isActive     Boolean   @default(true) @map("is_active")
-  lastLoginAt  DateTime? @map("last_login_at")
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
-  resumes      Resume[]
-  preferences  UserPreferences?
-  jobMatches   JobMatch[]
+  id           String           @id @default(uuid())
+  email        String           @unique
+  passwordHash String           @map("password_hash")
+  firstName    String           @map("first_name")
+  lastName     String           @map("last_name")
+  isVerified   Boolean          @default(false) @map("is_verified")
+  isActive     Boolean          @default(true) @map("is_active")
+  lastLoginAt  DateTime?        @map("last_login_at")
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @updatedAt @map("updated_at")
   applications Application[]
+  jobMatches   JobMatch[]
+  resumes      Resume[]
   sessions     Session[]
+  preferences  UserPreferences?
+
   @@map("users")
 }
 
@@ -41,32 +42,34 @@ model Resume {
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@map("resumes")
 }
 
 model UserPreferences {
-  id               String   @id @default(uuid())
-  userId           String   @unique @map("user_id")
-  careerLevel      String   @map("career_level")
-  jobTypes         String[] @map("job_types")
-  industries       String[]
-  locations        String[]
-  salaryMin        Int?     @map("salary_min")
-  salaryMax        Int?     @map("salary_max")
-  companySizes     String[] @map("company_sizes")
-  workEnvironment  String   @map("work_environment")
-  willingToRelocate Boolean @default(false) @map("willing_to_relocate")
-  openToCareerChange Boolean @default(false) @map("open_to_career_change")
-  skillsToDevelop  String[] @map("skills_to_develop")
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                 String   @id @default(uuid())
+  userId             String   @unique @map("user_id")
+  careerLevel        String   @map("career_level")
+  jobTypes           String[] @map("job_types")
+  industries         String[]
+  locations          String[]
+  salaryMin          Int?     @map("salary_min")
+  salaryMax          Int?     @map("salary_max")
+  companySizes       String[] @map("company_sizes")
+  workEnvironment    String   @map("work_environment")
+  willingToRelocate  Boolean  @default(false) @map("willing_to_relocate")
+  openToCareerChange Boolean  @default(false) @map("open_to_career_change")
+  skillsToDevelop    String[] @map("skills_to_develop")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@map("user_preferences")
 }
 
 model JobListing {
-  id                  String    @id @default(uuid())
-  externalId          String    @unique @map("external_id")
+  id                  String        @id @default(uuid())
+  externalId          String        @unique @map("external_id")
   title               String
   company             String
   location            String
@@ -74,57 +77,61 @@ model JobListing {
   requirements        String[]
   responsibilities    String[]
   skills              String[]
-  salaryMin           Int?      @map("salary_min")
-  salaryMax           Int?      @map("salary_max")
-  salaryCurrency      String    @default("USD") @map("salary_currency")
-  jobType             String    @map("job_type")
+  salaryMin           Int?          @map("salary_min")
+  salaryMax           Int?          @map("salary_max")
+  salaryCurrency      String        @default("USD") @map("salary_currency")
+  jobType             String        @map("job_type")
   industry            String
-  experienceLevel     String    @map("experience_level")
-  postedDate          DateTime  @map("posted_date")
-  applicationDeadline DateTime? @map("application_deadline")
-  isActive            Boolean   @default(true) @map("is_active")
-  isFeatured          Boolean   @default(false) @map("is_featured")
+  experienceLevel     String        @map("experience_level")
+  postedDate          DateTime      @map("posted_date")
+  applicationDeadline DateTime?     @map("application_deadline")
+  isActive            Boolean       @default(true) @map("is_active")
+  isFeatured          Boolean       @default(false) @map("is_featured")
   source              String
-  createdAt           DateTime  @default(now()) @map("created_at")
-  updatedAt           DateTime  @updatedAt @map("updated_at")
-  jobMatches          JobMatch[]
+  createdAt           DateTime      @default(now()) @map("created_at")
+  updatedAt           DateTime      @updatedAt @map("updated_at")
+  url                 String?
   applications        Application[]
+  jobMatches          JobMatch[]
+
   @@map("job_listings")
 }
 
 model JobMatch {
-  id              String   @id @default(uuid())
-  userId          String   @map("user_id")
-  jobId           String   @map("job_id")
-  matchScore      Float    @map("match_score")
-  skillScore      Float    @map("skill_score")
-  experienceScore Float    @map("experience_score")
-  locationScore   Float    @map("location_score")
-  matchReasons    Json     @map("match_reasons")
-  skillGaps       String[] @map("skill_gaps")
-  isViewed        Boolean  @default(false) @map("is_viewed")
-  isSaved         Boolean  @default(false) @map("is_saved")
-  isApplied       Boolean  @default(false) @map("is_applied")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
-  user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id              String     @id @default(uuid())
+  userId          String     @map("user_id")
+  jobId           String     @map("job_id")
+  matchScore      Float      @map("match_score")
+  skillScore      Float      @map("skill_score")
+  experienceScore Float      @map("experience_score")
+  locationScore   Float      @map("location_score")
+  matchReasons    Json       @map("match_reasons")
+  skillGaps       String[]   @map("skill_gaps")
+  isViewed        Boolean    @default(false) @map("is_viewed")
+  isSaved         Boolean    @default(false) @map("is_saved")
+  isApplied       Boolean    @default(false) @map("is_applied")
+  createdAt       DateTime   @default(now()) @map("created_at")
+  updatedAt       DateTime   @updatedAt @map("updated_at")
   job             JobListing @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@unique([userId, jobId])
   @@map("job_matches")
 }
 
 model Application {
-  id          String   @id @default(uuid())
-  userId      String   @map("user_id")
-  jobId       String   @map("job_id")
+  id          String     @id @default(uuid())
+  userId      String     @map("user_id")
+  jobId       String     @map("job_id")
   status      String
-  appliedAt   DateTime @default(now()) @map("applied_at")
-  lastUpdated DateTime @updatedAt @map("last_updated")
-  coverLetter String?  @map("cover_letter")
-  resumeId    String?  @map("resume_id")
+  appliedAt   DateTime   @default(now()) @map("applied_at")
+  lastUpdated DateTime   @updatedAt @map("last_updated")
+  coverLetter String?    @map("cover_letter")
+  resumeId    String?    @map("resume_id")
   source      String
-  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   job         JobListing @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@map("applications")
 }
 
@@ -135,5 +142,6 @@ model Session {
   expiresAt DateTime @map("expires_at")
   createdAt DateTime @default(now()) @map("created_at")
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@map("sessions")
 }

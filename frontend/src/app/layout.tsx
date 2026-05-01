@@ -1,33 +1,9 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
-import BackendWarmup from '@/components/system/BackendWarmup'
 
 export const metadata: Metadata = {
-  title: {
-    default: 'JobFinder — AI-Powered Job Matching',
-    template: '%s | JobFinder',
-  },
-  description:
-    'Find your perfect role with AI-powered resume parsing and intelligent job matching. Upload your resume, set preferences, and let our engine surface the jobs that matter.',
-  keywords: ['job search', 'AI jobs', 'resume matching', 'career', 'job finder'],
-  authors: [{ name: 'JobFinder' }],
-  openGraph: {
-    type: 'website',
-    locale: 'en_US',
-    url: 'https://jobfinder.app',
-    siteName: 'JobFinder',
-    title: 'JobFinder — AI-Powered Job Matching',
-    description: 'Find your perfect role with AI-powered resume parsing and intelligent job matching.',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'JobFinder — AI-Powered Job Matching',
-    description: 'Find your perfect role with AI-powered resume parsing.',
-  },
-  robots: {
-    index: true,
-    follow: true,
-  },
+  title: 'JobFinder — Sydney Tech Jobs',
+  description: 'Personal job browser. Scrapes Sydney/AU tech jobs from Jora, Remotive, and RemoteOK.',
 }
 
 export const viewport: Viewport = {
@@ -35,11 +11,7 @@ export const viewport: Viewport = {
   colorScheme: 'dark',
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="dark">
       <head>
@@ -51,7 +23,6 @@ export default function RootLayout({
         />
       </head>
       <body className="bg-background text-text font-body antialiased">
-        <BackendWarmup />
         {children}
       </body>
     </html>

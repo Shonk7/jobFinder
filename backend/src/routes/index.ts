@@ -5,6 +5,7 @@ import resumeRoutes from './resumes.routes';
 import jobRoutes from './jobs.routes';
 import applicationRoutes from './applications.routes';
 import notificationRoutes from './notifications.routes';
+import scraperRoutes from './scraper.routes';
 
 const router = Router();
 
@@ -23,5 +24,6 @@ router.use('/resumes', resumeRoutes);
 router.use('/jobs', jobRoutes);
 router.use('/applications', applicationRoutes);
 router.use('/notifications', notificationRoutes);
+router.use('/scrape', scraperRoutes);
 
 export default router;

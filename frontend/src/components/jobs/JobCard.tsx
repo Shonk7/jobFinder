@@ -1,238 +1,221 @@
 'use client'
 
 import { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { JobMatch } from '@/types'
-import {
-  cn,
-  formatSalary,
-  formatDate,
-  formatJobType,
-  formatWorkEnvironment,
-  getCompanyInitials,
-  getMatchStrokeColor,
-  getMatchColor,
-} from '@/lib/utils'
-import { Badge } from '@/components/ui/Badge'
-import { Button } from '@/components/ui/Button'
-import { jobsApi } from '@/lib/api'
-import { useJobStore } from '@/store/jobStore'
-import { useUserStore } from '@/store/userStore'
+import { Job } from '@/types'
+import { cn } from '@/lib/utils'
 
-interface JobCardProps {
-  job: JobMatch
-  onApply?: (job: JobMatch) => void
+const APPLIED_KEY = 'jf_applied_v2'
+
+function getApplied(): Set<string> {
+  if (typeof window === 'undefined') return new Set()
+  try { return new Set<string>(JSON.parse(localStorage.getItem(APPLIED_KEY) || '[]')) }
+  catch { return new Set() }
 }
 
-// Circular progress ring
-function MatchRing({
-  score,
-  size = 52,
-}: {
-  score: number
-  size?: number
-}) {
-  const radius = (size - 8) / 2
-  const circumference = 2 * Math.PI * radius
-  const strokeDashoffset = circumference - (score / 100) * circumference
-  const strokeColor = getMatchStrokeColor(score)
-
-  return (
-    <div className="relative flex-shrink-0" style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="-rotate-90">
-        {/* Background ring */}
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke="rgba(255,255,255,0.06)"
-          strokeWidth={4}
-          fill="none"
-        />
-        {/* Progress ring */}
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke={strokeColor}
-          strokeWidth={4}
-          fill="none"
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={strokeDashoffset}
-          style={{ filter: `drop-shadow(0 0 4px ${strokeColor}60)` }}
-        />
-      </svg>
-      {/* Score text */}
-      <div className="absolute inset-0 flex items-center justify-center">
-        <span className={cn('text-xs font-bold font-display', getMatchColor(score))}>
-          {score}%
-        </span>
-      </div>
-    </div>
-  )
+function markApplied(id: string) {
+  const s = getApplied(); s.add(id)
+  localStorage.setItem(APPLIED_KEY, JSON.stringify(Array.from(s)))
 }
 
-export default function JobCard({ job, onApply }: JobCardProps) {
-  const { jobListing, matchScore, isSaved, isApplied } = job
-  const { toggleSaveJob } = useJobStore()
-  const { isGuest } = useUserStore()
-  const [savingLoading, setSavingLoading] = useState(false)
+function initials(name: string) {
+  return name.split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '??'
+}
 
-  const maxSkillsShown = 3
-  const visibleSkills = jobListing.requiredSkills.slice(0, maxSkillsShown)
-  const remainingSkills = jobListing.requiredSkills.length - maxSkillsShown
+function fmtSalary(min: number | null, max: number | null, cur: string) {
+  if (!min && !max) return null
+  const sym = cur === 'USD' ? '$' : cur === 'EUR' ? '€' : cur === 'GBP' ? '£' : '$'
+  const k = (n: number) => n >= 1000 ? `${Math.round(n / 1000)}k` : String(n)
+  if (min && max && min !== max) return `${sym}${k(min)}–${sym}${k(max)}`
+  return `${sym}${k(min || max || 0)}`
+}
 
-  const handleToggleSave = async (e: React.MouseEvent) => {
+function fmtDate(d: string) {
+  const diff = Date.now() - new Date(d).getTime()
+  const days = Math.floor(diff / 86_400_000)
+  if (days === 0) return 'today'
+  if (days === 1) return '1d ago'
+  if (days < 7) return `${days}d ago`
+  if (days < 30) return `${Math.floor(days / 7)}w ago`
+  return `${Math.floor(days / 30)}mo ago`
+}
+
+const SOURCE_COLOUR: Record<string, string> = {
+  jora: '#00d4ff',
+  remotive: '#7c3aed',
+  remoteok: '#10b981',
+  arbeitnow: '#f59e0b',
+}
+
+const TYPE_LABEL: Record<string, string> = {
+  full_time: 'Full-time',
+  part_time: 'Part-time',
+  contract: 'Contract',
+  internship: 'Internship',
+  freelance: 'Freelance',
+}
+
+const EXP_LABEL: Record<string, string> = {
+  junior: 'Junior',
+  mid: 'Mid',
+  senior: 'Senior',
+}
+
+interface Props {
+  job: Job
+  matchScore?: number
+}
+
+function matchBadgeStyle(score: number): { label: string; cls: string } {
+  if (score >= 80) return { label: `${score}% match`, cls: 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20' }
+  if (score >= 60) return { label: `${score}% match`, cls: 'text-cyan-400 bg-cyan-400/10 border-cyan-400/20' }
+  if (score >= 40) return { label: `${score}% match`, cls: 'text-amber-400 bg-amber-400/10 border-amber-400/20' }
+  return { label: `${score}% match`, cls: 'text-muted bg-surface-2 border-border' }
+}
+
+export default function JobCard({ job, matchScore }: Props) {
+  const [applied, setApplied] = useState(() => getApplied().has(job.id))
+  const [expanded, setExpanded] = useState(false)
+
+  const salary = fmtSalary(job.salaryMin, job.salaryMax, job.salaryCurrency)
+  const sourceColor = SOURCE_COLOUR[job.source] ?? '#64748b'
+  const skills = job.skills.slice(0, 5)
+  const extraSkills = job.skills.length - 5
+
+  function handleApply(e: React.MouseEvent) {
     e.stopPropagation()
-    if (savingLoading) return
-    setSavingLoading(true)
-    try {
-      if (!isGuest) {
-        if (isSaved) {
-          await jobsApi.unsaveJob(job.id)
-        } else {
-          await jobsApi.saveJob(job.id)
-        }
-      }
-      toggleSaveJob(job.id)
-    } catch {
-      // Handle error silently — optimistic update already applied
-    } finally {
-      setSavingLoading(false)
+    if (job.url) {
+      window.open(job.url, '_blank', 'noopener,noreferrer')
     }
+    markApplied(job.id)
+    setApplied(true)
   }
 
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="group relative bg-surface border border-border rounded-2xl overflow-hidden transition-all duration-300 hover:border-border-bright hover:shadow-card-hover hover:-translate-y-0.5 flex flex-col"
+    <div
+      onClick={() => setExpanded(v => !v)}
+      className={cn(
+        'group relative bg-surface border rounded-2xl overflow-hidden transition-all duration-200 cursor-pointer flex flex-col',
+        expanded ? 'border-border-bright' : 'border-border hover:border-border-bright hover:-translate-y-0.5 hover:shadow-card-hover'
+      )}
     >
-      {/* Top section */}
-      <div className="p-5 flex-1">
-        {/* Header row */}
-        <div className="flex items-start justify-between gap-3 mb-4">
-          {/* Company avatar + info */}
-          <div className="flex items-center gap-3 min-w-0 flex-1">
-            <div className="flex-shrink-0 h-11 w-11 rounded-xl bg-gradient-to-br from-surface-3 to-surface-2 border border-border flex items-center justify-center text-sm font-bold text-text-secondary font-display">
-              {getCompanyInitials(jobListing.company)}
-            </div>
-            <div className="min-w-0">
-              <h3 className="font-display font-bold text-text text-sm leading-tight truncate">
-                {jobListing.title}
-              </h3>
-              <p className="text-xs text-muted truncate mt-0.5">{jobListing.company}</p>
-            </div>
-          </div>
+      {/* Source indicator strip */}
+      <div className="h-0.5 w-full" style={{ background: sourceColor }} />
 
-          {/* Match ring */}
-          <MatchRing score={matchScore} />
+      <div className="p-4 flex-1">
+        {/* Header */}
+        <div className="flex items-start gap-3 mb-3">
+          <div
+            className="flex-shrink-0 h-10 w-10 rounded-xl flex items-center justify-center text-xs font-bold text-background"
+            style={{ background: `linear-gradient(135deg, ${sourceColor}cc, ${sourceColor}66)` }}
+          >
+            {initials(job.company)}
+          </div>
+          <div className="min-w-0 flex-1">
+            <h3 className="font-display font-bold text-text text-sm leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+              {job.title}
+            </h3>
+            <p className="text-xs text-muted mt-0.5 truncate">{job.company}</p>
+          </div>
+          <div className="flex-shrink-0 flex flex-col items-end gap-1">
+            {applied && (
+              <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 px-2 py-0.5 rounded-full">
+                Applied
+              </span>
+            )}
+            {matchScore !== undefined && matchScore > 0 && (() => {
+              const { label, cls } = matchBadgeStyle(matchScore)
+              return (
+                <span className={`text-[10px] font-semibold border px-2 py-0.5 rounded-full ${cls}`}>
+                  {label}
+                </span>
+              )
+            })()}
+          </div>
         </div>
 
-        {/* Meta row */}
-        <div className="flex flex-wrap items-center gap-1.5 mb-4">
-          {/* Location */}
-          <span className="flex items-center gap-1 text-xs text-muted">
-            <svg className="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        {/* Meta chips */}
+        <div className="flex flex-wrap gap-1.5 mb-3">
+          <span className="flex items-center gap-1 text-[11px] text-muted">
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
-            {jobListing.location}
+            {job.location}
           </span>
-
-          <Badge variant="muted" size="sm">{formatWorkEnvironment(jobListing.workEnvironment)}</Badge>
-          <Badge variant="default" size="sm">{formatJobType(jobListing.jobType)}</Badge>
+          <span className="text-[11px] px-2 py-0.5 rounded-full bg-surface-2 border border-border text-text-secondary">
+            {TYPE_LABEL[job.jobType] ?? job.jobType}
+          </span>
+          <span className="text-[11px] px-2 py-0.5 rounded-full bg-surface-2 border border-border text-text-secondary">
+            {EXP_LABEL[job.experienceLevel] ?? job.experienceLevel}
+          </span>
         </div>
 
         {/* Salary */}
-        <div className="flex items-center gap-1.5 mb-4">
-          <svg className="w-3.5 h-3.5 text-muted flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <span className="text-xs font-medium text-text-secondary">
-            {formatSalary(jobListing.salaryMin, jobListing.salaryMax, jobListing.currency)}
-          </span>
-        </div>
+        {salary && (
+          <p className="text-xs font-semibold text-text mb-3">
+            {salary} <span className="text-muted font-normal">{job.salaryCurrency}</span>
+          </p>
+        )}
 
         {/* Skills */}
-        <div className="flex flex-wrap gap-1.5">
-          {visibleSkills.map((skill) => (
-            <Badge key={skill} variant="primary" size="sm">{skill}</Badge>
+        <div className="flex flex-wrap gap-1">
+          {skills.map(s => (
+            <span
+              key={s}
+              className="text-[10px] px-2 py-0.5 rounded-full font-medium"
+              style={{ background: sourceColor + '18', color: sourceColor, border: `1px solid ${sourceColor}30` }}
+            >
+              {s}
+            </span>
           ))}
-          {remainingSkills > 0 && (
-            <Badge variant="muted" size="sm">+{remainingSkills} more</Badge>
+          {extraSkills > 0 && (
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-surface-3 text-muted border border-border">
+              +{extraSkills}
+            </span>
           )}
         </div>
+
+        {/* Description (expanded) */}
+        {expanded && job.description && (
+          <p className="mt-3 pt-3 border-t border-border text-xs text-muted leading-relaxed line-clamp-6">
+            {job.description}
+          </p>
+        )}
       </div>
 
       {/* Footer */}
-      <div className="px-5 pb-4 pt-3 border-t border-border flex items-center justify-between gap-2">
-        <span className="text-[11px] text-muted">
-          Posted {formatDate(jobListing.postedAt)}
-        </span>
-
-        <div className="flex items-center gap-2">
-          {/* Save button */}
-          <button
-            onClick={handleToggleSave}
-            disabled={savingLoading}
-            className={cn(
-              'p-2 rounded-lg transition-all duration-200',
-              isSaved
-                ? 'text-primary bg-primary/10 hover:bg-primary/20'
-                : 'text-muted hover:text-text hover:bg-surface-2'
-            )}
-            aria-label={isSaved ? 'Unsave job' : 'Save job'}
-          >
-            <svg
-              className="w-4 h-4"
-              fill={isSaved ? 'currentColor' : 'none'}
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-              />
-            </svg>
-          </button>
-
-          {isApplied ? (
-            <Badge variant="success" size="sm" dot>Applied</Badge>
-          ) : (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onApply?.(job)}
-            >
-              Apply
-            </Button>
+      <div className="px-4 pb-3 pt-2 border-t border-border flex items-center justify-between gap-2">
+        <span className="text-[10px] text-muted">{fmtDate(job.postedDate)}</span>
+        <button
+          onClick={handleApply}
+          disabled={!job.url}
+          className={cn(
+            'flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all duration-150',
+            applied
+              ? 'text-emerald-400 bg-emerald-400/10 cursor-default'
+              : job.url
+              ? 'text-background hover:opacity-90 active:scale-95'
+              : 'text-muted bg-surface-2 cursor-not-allowed'
           )}
-        </div>
+          style={applied || !job.url ? {} : { background: sourceColor }}
+        >
+          {applied ? (
+            <>
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              Applied
+            </>
+          ) : (
+            <>
+              Apply
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+            </>
+          )}
+        </button>
       </div>
-
-      {/* Hover overlay — "View Details" */}
-      <AnimatePresence>
-        {false && ( // Conditionally show on click/modal trigger
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-surface/95 backdrop-blur-sm rounded-2xl p-5 flex flex-col justify-between"
-          >
-            <p className="text-sm text-text-secondary leading-relaxed line-clamp-6">
-              {jobListing.description}
-            </p>
-            <Button variant="primary" fullWidth size="sm">
-              View Full Details
-            </Button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
+    </div>
   )
 }
