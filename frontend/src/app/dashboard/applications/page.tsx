@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Application, ApplicationStatus } from '@/types'
 import { applicationsApi } from '@/lib/api'
-import { Badge, ApplicationStatusBadge } from '@/components/ui/Badge'
+import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { formatDate, getCompanyInitials } from '@/lib/utils'
 

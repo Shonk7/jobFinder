@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { JobFilters as Filters, JobType, WorkEnvironment } from '@/types'
+import { JobType, WorkEnvironment } from '@/types'
 import { useJobStore } from '@/store/jobStore'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'

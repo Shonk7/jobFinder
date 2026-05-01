@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
+import type { FileRejection } from 'react-dropzone'
 import { motion, AnimatePresence } from 'framer-motion'
 import { resumeApi } from '@/lib/api'
 import { ParsedResumeData, Resume } from '@/types'
@@ -42,7 +43,7 @@ export default function ResumeUpload({ onUploadComplete }: ResumeUploadProps) {
   })
 
   const onDrop = useCallback(
-    async (acceptedFiles: File[], rejectedFiles: { errors: { code: string; message: string }[] }[]) => {
+    async (acceptedFiles: File[], rejectedFiles: FileRejection[]) => {
       if (rejectedFiles.length > 0) {
         const err = rejectedFiles[0].errors[0]
         setState((s) => ({
