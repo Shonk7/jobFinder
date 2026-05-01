@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { jobsApi } from '@/lib/api'
 import { useJobStore } from '@/store/jobStore'
+import { useUserStore } from '@/store/userStore'
 
 interface JobCardProps {
   job: JobMatch
@@ -75,6 +76,7 @@ function MatchRing({
 export default function JobCard({ job, onApply }: JobCardProps) {
   const { jobListing, matchScore, isSaved, isApplied } = job
   const { toggleSaveJob } = useJobStore()
+  const { isGuest } = useUserStore()
   const [savingLoading, setSavingLoading] = useState(false)
 
   const maxSkillsShown = 3
@@ -86,10 +88,12 @@ export default function JobCard({ job, onApply }: JobCardProps) {
     if (savingLoading) return
     setSavingLoading(true)
     try {
-      if (isSaved) {
-        await jobsApi.unsaveJob(job.id)
-      } else {
-        await jobsApi.saveJob(job.id)
+      if (!isGuest) {
+        if (isSaved) {
+          await jobsApi.unsaveJob(job.id)
+        } else {
+          await jobsApi.saveJob(job.id)
+        }
       }
       toggleSaveJob(job.id)
     } catch {

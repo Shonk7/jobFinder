@@ -91,6 +91,9 @@ export default function Navbar() {
 
           {/* Auth Buttons */}
           <div className="hidden md:flex items-center gap-3">
+            <Link href="/guest">
+              <Button variant="outline" size="sm">Try guest mode</Button>
+            </Link>
             <Link href="/login">
               <Button variant="ghost" size="sm">Sign in</Button>
             </Link>
@@ -138,6 +141,9 @@ export default function Navbar() {
               ))}
             </nav>
             <div className="flex flex-col gap-2">
+              <Link href="/guest" onClick={() => setMobileOpen(false)}>
+                <Button variant="outline" fullWidth>Try guest mode</Button>
+              </Link>
               <Link href="/login" onClick={() => setMobileOpen(false)}>
                 <Button variant="ghost" fullWidth>Sign in</Button>
               </Link>

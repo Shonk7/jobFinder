@@ -78,7 +78,7 @@ const PasswordStrength = ({ password }: { password: string }) => {
 
 export default function RegisterPage() {
   const router = useRouter()
-  const { setAuth } = useUserStore()
+  const { setAuth, continueAsGuest } = useUserStore()
   const [serverError, setServerError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
@@ -103,8 +103,8 @@ export default function RegisterPage() {
         firstName: data.firstName,
         lastName: data.lastName,
       })
-      const { user, tokens } = response.data.data
-      setAuth(user, tokens.accessToken, tokens.refreshToken)
+      const { user, accessToken, refreshToken } = response.data.data
+      setAuth(user, accessToken, refreshToken)
       router.push('/dashboard/upload')
     } catch (err: unknown) {
       const message =
@@ -273,6 +273,19 @@ export default function RegisterPage() {
               loading={isSubmitting}
             >
               Create account
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              fullWidth
+              onClick={() => {
+                continueAsGuest()
+                router.push('/dashboard')
+              }}
+            >
+              Continue as guest
             </Button>
           </form>
 

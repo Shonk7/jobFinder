@@ -7,6 +7,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { CareerLevel, JobType, WorkEnvironment } from '@/types'
 import { preferencesApi } from '@/lib/api'
+import { saveGuestPreferences } from '@/lib/guestData'
+import { useUserStore } from '@/store/userStore'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { cn } from '@/lib/utils'
@@ -67,6 +69,7 @@ interface PreferencesFormProps {
 }
 
 export default function PreferencesForm({ onComplete }: PreferencesFormProps) {
+  const { isGuest, updateUser } = useUserStore()
   const [step, setStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [industrySearch, setIndustrySearch] = useState('')
@@ -95,6 +98,28 @@ export default function PreferencesForm({ onComplete }: PreferencesFormProps) {
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true)
     try {
+      if (isGuest) {
+        saveGuestPreferences({
+          id: 'guest-preferences',
+          userId: 'guest-local',
+          careerLevel: data.careerLevel,
+          yearsOfExperience: data.yearsOfExperience,
+          jobTypes: data.jobTypes,
+          workEnvironment: data.workEnvironment,
+          industries: data.industries,
+          locations: data.locations,
+          remotePreference: 'flexible' as never,
+          salaryMin: data.salaryMin,
+          salaryMax: data.salaryMax,
+          currency: data.currency,
+          skills: [],
+          updatedAt: new Date().toISOString(),
+        })
+        updateUser({ hasPreferences: true, updatedAt: new Date().toISOString() })
+        onComplete?.()
+        return
+      }
+
       await preferencesApi.create({
         careerLevel: data.careerLevel,
         yearsOfExperience: data.yearsOfExperience,

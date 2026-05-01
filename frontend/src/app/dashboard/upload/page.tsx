@@ -1,19 +1,29 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { resumeApi } from '@/lib/api'
 import { Resume } from '@/types'
+import { deleteGuestResume, getGuestResumes } from '@/lib/guestData'
+import { useUserStore } from '@/store/userStore'
 import ResumeUpload from '@/components/resume/ResumeUpload'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { formatDate } from '@/lib/utils'
 
 export default function UploadPage() {
+  const { isGuest } = useUserStore()
   const [resumes, setResumes] = useState<Resume[]>([])
   const [loading, setLoading] = useState(true)
 
-  const fetchResumes = async () => {
+  const fetchResumes = useCallback(async () => {
+    if (isGuest) {
+      setResumes(getGuestResumes())
+      setLoading(false)
+      return
+    }
+
     try {
       const response = await resumeApi.getMyResumes()
       setResumes(response.data.data)
@@ -22,14 +32,21 @@ export default function UploadPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [isGuest])
 
   useEffect(() => {
     fetchResumes()
-  }, [])
+  }, [fetchResumes])
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this resume?')) return
+
+    if (isGuest) {
+      deleteGuestResume(id)
+      setResumes((prev) => prev.filter((r) => r.id !== id))
+      return
+    }
+
     try {
       await resumeApi.deleteResume(id)
       setResumes((prev) => prev.filter((r) => r.id !== id))
@@ -96,7 +113,7 @@ export default function UploadPage() {
         transition={{ delay: 0.1 }}
         className="mb-8"
       >
-        <ResumeUpload onUploadComplete={() => fetchResumes()} />
+        <ResumeUpload guestMode={isGuest} onUploadComplete={() => fetchResumes()} />
       </motion.div>
 
       {/* Previous resumes */}

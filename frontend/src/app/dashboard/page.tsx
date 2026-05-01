@@ -6,6 +6,7 @@ import { useUserStore } from '@/store/userStore'
 import { useJobStore } from '@/store/jobStore'
 import { jobsApi, dashboardApi } from '@/lib/api'
 import { DashboardStats, JobMatch } from '@/types'
+import { addGuestApplicationFromJob, getGuestJobMatches, getGuestStats } from '@/lib/guestData'
 import JobCard from '@/components/jobs/JobCard'
 import JobFilters from '@/components/jobs/JobFilters'
 import { Button } from '@/components/ui/Button'
@@ -76,7 +77,7 @@ function SkeletonCard() {
 }
 
 export default function DashboardPage() {
-  const { user } = useUserStore()
+  const { user, isGuest } = useUserStore()
   const { jobs, filters, pagination, setJobs, appendJobs, setLoading, isLoading, error, setError } = useJobStore()
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [statsLoading, setStatsLoading] = useState(true)
@@ -92,6 +93,22 @@ export default function DashboardPage() {
   const fetchJobs = useCallback(async (reset = true) => {
     if (reset) setLoading(true)
     setError(null)
+
+    if (isGuest) {
+      const localJobs = getGuestJobMatches()
+      setJobs(localJobs, {
+        page: 1,
+        limit: localJobs.length,
+        total: localJobs.length,
+        totalPages: 1,
+        hasNext: false,
+        hasPrev: false,
+      })
+      setLoading(false)
+      setLoadingMore(false)
+      return
+    }
+
     try {
       const response = await jobsApi.getMatches({ ...filters, page: reset ? 1 : (pagination.page + 1) })
       const { data, pagination: pag } = response.data
@@ -106,7 +123,7 @@ export default function DashboardPage() {
       setLoading(false)
       setLoadingMore(false)
     }
-  }, [filters, pagination.page, setLoading, setError, setJobs, appendJobs])
+  }, [filters, pagination.page, setLoading, setError, setJobs, appendJobs, isGuest])
 
   useEffect(() => {
     fetchJobs(true)
@@ -114,6 +131,12 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const fetchStats = async () => {
+      if (isGuest) {
+        setStats(getGuestStats())
+        setStatsLoading(false)
+        return
+      }
+
       try {
         const response = await dashboardApi.getStats()
         setStats(response.data.data)
@@ -131,7 +154,13 @@ export default function DashboardPage() {
       }
     }
     fetchStats()
-  }, [])
+  }, [isGuest])
+
+  const handleApply = (job: JobMatch) => {
+    if (isGuest) {
+      addGuestApplicationFromJob(job)
+    }
+  }
 
   const handleLoadMore = () => {
     if (loadingMore || !pagination.hasNext) return
@@ -278,7 +307,7 @@ export default function DashboardPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.04, duration: 0.4 }}
                 >
-                  <JobCard job={job} />
+                  <JobCard job={job} onApply={handleApply} />
                 </motion.div>
               ))}
             </div>

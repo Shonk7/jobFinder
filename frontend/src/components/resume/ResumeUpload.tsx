@@ -5,6 +5,7 @@ import { useDropzone } from 'react-dropzone'
 import type { FileRejection } from 'react-dropzone'
 import { motion, AnimatePresence } from 'framer-motion'
 import { resumeApi } from '@/lib/api'
+import { createGuestResumeFromFile, saveGuestResume } from '@/lib/guestData'
 import { ParsedResumeData, Resume } from '@/types'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
@@ -29,10 +30,11 @@ interface UploadState {
 }
 
 interface ResumeUploadProps {
+  guestMode?: boolean
   onUploadComplete?: (resume: Resume) => void
 }
 
-export default function ResumeUpload({ onUploadComplete }: ResumeUploadProps) {
+export default function ResumeUpload({ guestMode = false, onUploadComplete }: ResumeUploadProps) {
   const [state, setState] = useState<UploadState>({
     status: 'idle',
     progress: 0,
@@ -64,6 +66,14 @@ export default function ResumeUpload({ onUploadComplete }: ResumeUploadProps) {
       setState({ status: 'uploading', progress: 0, file, resume: null, parsedData: null, error: null })
 
       try {
+        if (guestMode) {
+          const resume = createGuestResumeFromFile(file)
+          saveGuestResume(resume)
+          setState((s) => ({ ...s, status: 'done', resume, parsedData: resume.parsedData, progress: 100 }))
+          onUploadComplete?.(resume)
+          return
+        }
+
         const response = await resumeApi.upload(file, (progress) => {
           setState((s) => ({ ...s, progress }))
         })
@@ -107,7 +117,7 @@ export default function ResumeUpload({ onUploadComplete }: ResumeUploadProps) {
         }))
       }
     },
-    [onUploadComplete]
+    [guestMode, onUploadComplete]
   )
 
   const { getRootProps, getInputProps, isDragActive, isDragReject } = useDropzone({
@@ -124,6 +134,7 @@ export default function ResumeUpload({ onUploadComplete }: ResumeUploadProps) {
 
   const handleTriggerMatching = async () => {
     if (!state.resume) return
+    if (guestMode) return
     try {
       await resumeApi.triggerMatching(state.resume.id)
     } catch {

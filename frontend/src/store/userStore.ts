@@ -7,11 +7,13 @@ interface UserState {
   accessToken: string | null
   refreshToken: string | null
   isAuthenticated: boolean
+  isGuest: boolean
   isLoading: boolean
 }
 
 interface UserActions {
   setAuth: (user: User, accessToken: string, refreshToken: string) => void
+  continueAsGuest: () => void
   logout: () => void
   updateUser: (updates: Partial<User>) => void
   setLoading: (loading: boolean) => void
@@ -24,6 +26,7 @@ const initialState: UserState = {
   accessToken: null,
   refreshToken: null,
   isAuthenticated: false,
+  isGuest: false,
   isLoading: false,
 }
 
@@ -43,6 +46,34 @@ export const useUserStore = create<UserStore>()(
           accessToken,
           refreshToken,
           isAuthenticated: true,
+          isGuest: false,
+          isLoading: false,
+        })
+      },
+
+      continueAsGuest: () => {
+        const guestUser: User = {
+          id: 'guest-local',
+          email: 'guest@local',
+          firstName: 'Guest',
+          lastName: 'User',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          hasResume: false,
+          hasPreferences: false,
+        }
+
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('accessToken')
+          localStorage.removeItem('refreshToken')
+        }
+
+        set({
+          user: guestUser,
+          accessToken: null,
+          refreshToken: null,
+          isAuthenticated: true,
+          isGuest: true,
           isLoading: false,
         })
       },
@@ -78,6 +109,7 @@ export const useUserStore = create<UserStore>()(
         accessToken: state.accessToken,
         refreshToken: state.refreshToken,
         isAuthenticated: state.isAuthenticated,
+        isGuest: state.isGuest,
       }),
     }
   )

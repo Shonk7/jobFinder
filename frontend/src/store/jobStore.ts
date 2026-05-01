@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persist, createJSONStorage } from 'zustand/middleware'
 import { JobFilters, JobMatch } from '@/types'
 
 interface Pagination {
@@ -47,56 +48,84 @@ const defaultPagination: Pagination = {
   hasPrev: false,
 }
 
-export const useJobStore = create<JobStore>((set, get) => ({
-  jobs: [],
-  savedJobs: [],
-  filters: defaultFilters,
-  pagination: defaultPagination,
-  isLoading: false,
-  error: null,
+export const useJobStore = create<JobStore>()(
+  persist(
+    (set, get) => ({
+      jobs: [],
+      savedJobs: [],
+      filters: defaultFilters,
+      pagination: defaultPagination,
+      isLoading: false,
+      error: null,
 
-  setJobs: (jobs, pagination) => {
-    set({ jobs, pagination, error: null })
-  },
+      setJobs: (jobs, pagination) => {
+        set({ jobs, pagination, error: null })
+      },
 
-  appendJobs: (newJobs, pagination) => {
-    const existingJobs = get().jobs
-    const existingIds = new Set(existingJobs.map((j) => j.id))
-    const uniqueNewJobs = newJobs.filter((j) => !existingIds.has(j.id))
-    set({ jobs: [...existingJobs, ...uniqueNewJobs], pagination })
-  },
+      appendJobs: (newJobs, pagination) => {
+        const existingJobs = get().jobs
+        const existingIds = new Set(existingJobs.map((j) => j.id))
+        const uniqueNewJobs = newJobs.filter((j) => !existingIds.has(j.id))
+        set({ jobs: [...existingJobs, ...uniqueNewJobs], pagination })
+      },
 
-  setFilters: (newFilters) => {
-    set((state) => ({
-      filters: { ...state.filters, ...newFilters, page: 1 },
-    }))
-  },
+      setFilters: (newFilters) => {
+        set((state) => ({
+          filters: { ...state.filters, ...newFilters, page: 1 },
+        }))
+      },
 
-  clearFilters: () => {
-    set({ filters: defaultFilters })
-  },
+      clearFilters: () => {
+        set({ filters: defaultFilters })
+      },
 
-  toggleSaveJob: (jobId) => {
-    set((state) => ({
-      jobs: state.jobs.map((job) =>
-        job.id === jobId ? { ...job, isSaved: !job.isSaved } : job
+      toggleSaveJob: (jobId) => {
+        set((state) => ({
+          jobs: state.jobs.map((job) =>
+            job.id === jobId ? { ...job, isSaved: !job.isSaved } : job
+          ),
+          savedJobs: state.savedJobs.some((j) => j.id === jobId)
+            ? state.savedJobs.filter((j) => j.id !== jobId)
+            : (() => {
+                const toSave = state.jobs.find((j) => j.id === jobId)
+                return toSave ? [...state.savedJobs, { ...toSave, isSaved: true }] : state.savedJobs
+              })(),
+        }))
+      },
+
+      setSavedJobs: (jobs) => {
+        set({ savedJobs: jobs })
+      },
+
+      setLoading: (loading) => set({ isLoading: loading }),
+
+      setError: (error) => set({ error }),
+
+      markAsApplied: (jobId) => {
+        set((state) => ({
+          jobs: state.jobs.map((job) =>
+            job.id === jobId ? { ...job, isApplied: true } : job
+          ),
+        }))
+      },
+    }),
+    {
+      name: 'jobfinder-jobs',
+      storage: createJSONStorage(() =>
+        typeof window !== 'undefined'
+          ? localStorage
+          : {
+              getItem: () => null,
+              setItem: () => {},
+              removeItem: () => {},
+            }
       ),
-    }))
-  },
-
-  setSavedJobs: (jobs) => {
-    set({ savedJobs: jobs })
-  },
-
-  setLoading: (loading) => set({ isLoading: loading }),
-
-  setError: (error) => set({ error }),
-
-  markAsApplied: (jobId) => {
-    set((state) => ({
-      jobs: state.jobs.map((job) =>
-        job.id === jobId ? { ...job, isApplied: true } : job
-      ),
-    }))
-  },
-}))
+      partialize: (state) => ({
+        jobs: state.jobs,
+        savedJobs: state.savedJobs,
+        filters: state.filters,
+        pagination: state.pagination,
+      }),
+    }
+  )
+)

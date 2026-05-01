@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Application, ApplicationStatus } from '@/types'
 import { applicationsApi } from '@/lib/api'
+import { getGuestApplications } from '@/lib/guestData'
+import { useUserStore } from '@/store/userStore'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { formatDate, getCompanyInitials } from '@/lib/utils'
@@ -124,12 +126,19 @@ function EmptyColumn({ label }: { label: string }) {
 }
 
 export default function ApplicationsPage() {
+  const { isGuest } = useUserStore()
   const [applications, setApplications] = useState<Application[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchApplications = async () => {
+      if (isGuest) {
+        setApplications(getGuestApplications())
+        setLoading(false)
+        return
+      }
+
       try {
         const response = await applicationsApi.getAll()
         setApplications(response.data.data)
@@ -142,7 +151,7 @@ export default function ApplicationsPage() {
       }
     }
     fetchApplications()
-  }, [])
+  }, [isGuest])
 
   const getColumnApplications = (status: ApplicationStatus) =>
     applications.filter((app) => app.status === status)

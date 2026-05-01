@@ -50,7 +50,7 @@ const navItems = [
 export default function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
-  const { user, logout } = useUserStore()
+  const { user, isGuest, logout } = useUserStore()
 
   const handleLogout = async () => {
     try {
@@ -59,7 +59,7 @@ export default function Sidebar() {
       // ignore
     }
     logout()
-    router.push('/login')
+    router.push(isGuest ? '/' : '/login')
   }
 
   const isActive = (href: string, exact?: boolean) => {

@@ -21,7 +21,7 @@ type FormData = z.infer<typeof schema>
 
 export default function LoginPage() {
   const router = useRouter()
-  const { setAuth } = useUserStore()
+  const { setAuth, continueAsGuest } = useUserStore()
   const [serverError, setServerError] = useState<string | null>(null)
 
   const {
@@ -36,8 +36,8 @@ export default function LoginPage() {
     setServerError(null)
     try {
       const response = await authApi.login(data)
-      const { user, tokens } = response.data.data
-      setAuth(user, tokens.accessToken, tokens.refreshToken)
+      const { user, accessToken, refreshToken } = response.data.data
+      setAuth(user, accessToken, refreshToken)
       router.push('/dashboard')
     } catch (err: unknown) {
       const message =
@@ -143,6 +143,19 @@ export default function LoginPage() {
               className="mt-2"
             >
               Sign in
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              fullWidth
+              onClick={() => {
+                continueAsGuest()
+                router.push('/dashboard')
+              }}
+            >
+              Continue as guest
             </Button>
           </form>
 

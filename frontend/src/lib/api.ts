@@ -132,10 +132,10 @@ export const authApi = {
     password: string
     firstName: string
     lastName: string
-  }) => api.post<ApiResponse<{ user: User; tokens: AuthTokens }>>('/auth/register', data),
+  }) => api.post<ApiResponse<{ user: User; accessToken: string; refreshToken: string }>>('/auth/register', data),
 
   login: (data: { email: string; password: string }) =>
-    api.post<ApiResponse<{ user: User; tokens: AuthTokens }>>('/auth/login', data),
+    api.post<ApiResponse<{ user: User; accessToken: string; refreshToken: string }>>('/auth/login', data),
 
   logout: () => api.post<ApiResponse<null>>('/auth/logout'),
 
