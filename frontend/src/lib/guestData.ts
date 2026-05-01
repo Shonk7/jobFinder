@@ -3,6 +3,7 @@ import { Application, ApplicationStatus, CareerLevel, DashboardStats, JobMatch, 
 const GUEST_PREFERENCES_KEY = 'jobfinder-guest-preferences'
 const GUEST_RESUMES_KEY = 'jobfinder-guest-resumes'
 const GUEST_APPLICATIONS_KEY = 'jobfinder-guest-applications'
+const GUEST_MATCHES_KEY = 'jobfinder-guest-matches'
 
 const nowIso = () => new Date().toISOString()
 
@@ -72,9 +73,7 @@ const DEMO_JOBS: JobMatch[] = [
 ]
 
 export const getGuestJobMatches = (): JobMatch[] => {
-  const saved = safeRead<JobMatch[]>('jobfinder-jobs-saved-legacy', [])
-  const savedIds = new Set(saved.map((j) => j.id))
-  return DEMO_JOBS.map((job) => ({ ...job, isSaved: savedIds.has(job.id) }))
+  return safeRead<JobMatch[]>(GUEST_MATCHES_KEY, DEMO_JOBS)
 }
 
 export const getGuestStats = (): DashboardStats => {
@@ -151,4 +150,60 @@ export const addGuestApplicationFromJob = (job: JobMatch) => {
   }
 
   safeWrite(GUEST_APPLICATIONS_KEY, [application, ...apps])
+}
+
+const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value))
+
+export const triggerGuestMatching = (resumeId?: string): { jobsMatched: number } => {
+  const resumes = getGuestResumes()
+  if (resumes.length === 0) {
+    safeWrite(GUEST_MATCHES_KEY, DEMO_JOBS)
+    return { jobsMatched: DEMO_JOBS.length }
+  }
+
+  const targetResume = resumeId
+    ? resumes.find((resume) => resume.id === resumeId) || resumes[0]
+    : resumes[0]
+
+  const skills = new Set((targetResume.parsedData?.skills || []).map((skill) => skill.toLowerCase()))
+  const prefs = getGuestPreferences()
+
+  const matched = DEMO_JOBS.map((job) => {
+    const jobSkills = job.jobListing.requiredSkills.map((skill) => skill.toLowerCase())
+    const overlappingSkills = job.jobListing.requiredSkills.filter((skill) => skills.has(skill.toLowerCase()))
+    const overlapRatio = jobSkills.length > 0 ? overlappingSkills.length / jobSkills.length : 0
+
+    let score = 55 + overlapRatio * 35
+
+    if (prefs) {
+      if (prefs.workEnvironment.includes(job.jobListing.workEnvironment)) score += 5
+      if (prefs.locations.some((loc) => job.jobListing.location.toLowerCase().includes(loc.toLowerCase()))) score += 3
+      if (
+        job.jobListing.salaryMin &&
+        job.jobListing.salaryMax &&
+        prefs.salaryMin <= job.jobListing.salaryMax &&
+        prefs.salaryMax >= job.jobListing.salaryMin
+      ) {
+        score += 4
+      }
+    }
+
+    const normalizedScore = clamp(Math.round(score), 45, 98)
+    const skillReason = overlappingSkills.length > 0
+      ? `Your resume matches ${overlappingSkills.slice(0, 2).join(', ')}.`
+      : 'Role aligns with your profile baseline and transferable skills.'
+
+    return {
+      ...job,
+      matchScore: normalizedScore,
+      matchReasons: [
+        { category: 'skills', score: overlapRatio || 0.5, description: skillReason },
+        { category: 'experience', score: 0.75, description: 'Experience level appears compatible with this role.' },
+      ],
+      createdAt: nowIso(),
+    }
+  }).sort((a, b) => b.matchScore - a.matchScore)
+
+  safeWrite(GUEST_MATCHES_KEY, matched)
+  return { jobsMatched: matched.length }
 }

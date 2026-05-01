@@ -5,7 +5,7 @@ import { useDropzone } from 'react-dropzone'
 import type { FileRejection } from 'react-dropzone'
 import { motion, AnimatePresence } from 'framer-motion'
 import { resumeApi } from '@/lib/api'
-import { createGuestResumeFromFile, saveGuestResume } from '@/lib/guestData'
+import { createGuestResumeFromFile, saveGuestResume, triggerGuestMatching } from '@/lib/guestData'
 import { ParsedResumeData, Resume } from '@/types'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
@@ -69,6 +69,7 @@ export default function ResumeUpload({ guestMode = false, onUploadComplete }: Re
         if (guestMode) {
           const resume = createGuestResumeFromFile(file)
           saveGuestResume(resume)
+          triggerGuestMatching(resume.id)
           setState((s) => ({ ...s, status: 'done', resume, parsedData: resume.parsedData, progress: 100 }))
           onUploadComplete?.(resume)
           return
@@ -134,7 +135,10 @@ export default function ResumeUpload({ guestMode = false, onUploadComplete }: Re
 
   const handleTriggerMatching = async () => {
     if (!state.resume) return
-    if (guestMode) return
+    if (guestMode) {
+      triggerGuestMatching(state.resume.id)
+      return
+    }
     try {
       await resumeApi.triggerMatching(state.resume.id)
     } catch {

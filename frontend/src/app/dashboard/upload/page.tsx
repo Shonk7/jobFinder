@@ -5,7 +5,7 @@ import { useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { resumeApi } from '@/lib/api'
 import { Resume } from '@/types'
-import { deleteGuestResume, getGuestResumes } from '@/lib/guestData'
+import { deleteGuestResume, getGuestResumes, triggerGuestMatching } from '@/lib/guestData'
 import { useUserStore } from '@/store/userStore'
 import ResumeUpload from '@/components/resume/ResumeUpload'
 import { Badge } from '@/components/ui/Badge'
@@ -164,6 +164,10 @@ export default function UploadPage() {
                         variant="outline"
                         size="sm"
                         onClick={async () => {
+                          if (isGuest) {
+                            triggerGuestMatching(resume.id)
+                            return
+                          }
                           await resumeApi.triggerMatching(resume.id)
                         }}
                       >
