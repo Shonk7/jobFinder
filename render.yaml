@@ -5,16 +5,13 @@ services:
     plan: free
     region: oregon
     rootDir: backend
-    buildCommand: npm ci && npm run generate && npm run build
-    preDeployCommand: npx prisma db push
+    buildCommand: npm ci && npm run generate && npm run build && npx prisma db push
     startCommand: npm start
     autoDeployTrigger: checksPass
     healthCheckPath: /api/v1/health
     envVars:
       - key: DATABASE_URL
-        fromDatabase:
-          name: jobapp-postgres
-          property: connectionString
+        sync: false   # paste your Neon connection string here during Blueprint setup
       - key: REDIS_URL
         fromService:
           name: jobapp-redis
@@ -27,22 +24,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: FRONTEND_URL
-        sync: false
-
-  - type: web
-    name: jobapp-frontend
-    runtime: node
-    plan: free
-    region: oregon
-    rootDir: frontend
-    buildCommand: npm ci && npm run build
-    startCommand: npm start
-    autoDeployTrigger: checksPass
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: NEXT_PUBLIC_API_URL
-        sync: false
+        sync: false   # e.g. https://your-project.vercel.app
 
   - type: keyvalue
     name: jobapp-redis
@@ -50,14 +32,6 @@ services:
     region: oregon
     maxmemoryPolicy: allkeys-lru
     ipAllowList: []
-
-databases:
-  - name: jobapp-postgres
-    plan: free
-    region: oregon
-    postgresMajorVersion: "15"
-    databaseName: jobapp
-    user: jobapp
 
 previews:
   generation: off
