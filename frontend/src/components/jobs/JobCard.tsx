@@ -76,7 +76,6 @@ export default function JobCard({ job, onApply }: JobCardProps) {
   const { jobListing, matchScore, isSaved, isApplied } = job
   const { toggleSaveJob } = useJobStore()
   const [savingLoading, setSavingLoading] = useState(false)
-  const [showDetails, setShowDetails] = useState(false)
 
   const maxSkillsShown = 3
   const visibleSkills = jobListing.requiredSkills.slice(0, maxSkillsShown)

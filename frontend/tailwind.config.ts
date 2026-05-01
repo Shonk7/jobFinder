@@ -23,6 +23,8 @@ const config: Config = {
         success: '#10b981',
         warning: '#f59e0b',
         danger: '#ef4444',
+        'border-bright': '#2a2a3e',
+        'text-secondary': '#94a3b8',
       },
       fontFamily: {
         display: ['Syne', 'sans-serif'],
