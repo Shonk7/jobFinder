@@ -21,6 +21,7 @@ This project includes comprehensive design documentation covering all aspects of
 - **[Security & Privacy](./SECURITY_PRIVACY.md)** - Security requirements, privacy controls, and compliance
 - **[Database Design](./DATABASE_DESIGN.md)** - Complete database schema and data models
 - **[Deployment](./DEPLOYMENT_INFRASTRUCTURE.md)** - Infrastructure, CI/CD, and deployment strategy
+- **[Deployment Setup](./DEPLOYMENT.md)** - GitHub Actions and Render configuration for this repo
 
 ## 🛠️ Tech Stack
 

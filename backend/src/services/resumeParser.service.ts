@@ -1,4 +1,3 @@
-import fs from 'fs';
 import path from 'path';
 
 export interface ParsedResume {
@@ -140,14 +139,12 @@ function detectEducationFromFileName(fileName: string): string {
   return 'Bachelors';
 }
 
-function readFileContent(filePath: string): string {
+function readFileContent(fileBuffer: Buffer): string {
   try {
-    const stat = fs.statSync(filePath);
-    if (stat.size > 10 * 1024 * 1024) {
+    if (fileBuffer.length > 10 * 1024 * 1024) {
       return '';
     }
-    const buffer = fs.readFileSync(filePath);
-    return buffer.toString('utf-8', 0, Math.min(buffer.length, 50000));
+    return fileBuffer.toString('utf-8', 0, Math.min(fileBuffer.length, 50000));
   } catch {
     return '';
   }
@@ -224,9 +221,12 @@ function extractEducationFromText(text: string): string | null {
   return null;
 }
 
-export const parseResume = async (filePath: string): Promise<ParsedResume> => {
-  const fileName = path.basename(filePath, path.extname(filePath));
-  const fileContent = readFileContent(filePath);
+export const parseResume = async (
+  fileBuffer: Buffer,
+  originalName: string
+): Promise<ParsedResume> => {
+  const fileName = path.basename(originalName, path.extname(originalName));
+  const fileContent = readFileContent(fileBuffer);
 
   let skills: string[];
   let experienceYears: number;

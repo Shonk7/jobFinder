@@ -2,7 +2,6 @@ import { Request, Response, NextFunction } from 'express';
 import { Prisma } from '@prisma/client';
 import multer from 'multer';
 import path from 'path';
-import fs from 'fs';
 import { prisma } from '../config/database';
 import { parseResume } from '../services/resumeParser.service';
 import {
@@ -11,23 +10,6 @@ import {
   AuthorizationError,
   AppError,
 } from '../errors/customErrors';
-
-const UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'resumes');
-
-if (!fs.existsSync(UPLOAD_DIR)) {
-  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-}
-
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
-    cb(null, UPLOAD_DIR);
-  },
-  filename: (_req, file, cb) => {
-    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-    const ext = path.extname(file.originalname);
-    cb(null, `resume-${uniqueSuffix}${ext}`);
-  },
-});
 
 const fileFilter = (
   _req: Request,
@@ -57,7 +39,7 @@ const fileFilter = (
 };
 
 export const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   fileFilter,
   limits: {
     fileSize: 5 * 1024 * 1024,
@@ -79,14 +61,13 @@ export const uploadResume = async (
       throw new AppError('No file uploaded', 400, 'NO_FILE');
     }
 
-    const parsed = await parseResume(req.file.path);
+    const parsed = await parseResume(req.file.buffer, req.file.originalname);
 
     const existingCount = await prisma.resume.count({
       where: { userId: req.user.id, isActive: true },
     });
 
     if (existingCount >= 5) {
-      fs.unlinkSync(req.file.path);
       throw new AppError(
         'Maximum of 5 active resumes allowed. Please delete an existing resume first.',
         400,
@@ -98,7 +79,7 @@ export const uploadResume = async (
       data: {
         userId: req.user.id,
         fileName: req.file.originalname,
-        filePath: req.file.path,
+        filePath: `memory://${req.file.originalname}`,
         fileSize: req.file.size,
         fileType: req.file.mimetype,
         parsedContent: parsed as unknown as Prisma.JsonObject,
@@ -115,13 +96,6 @@ export const uploadResume = async (
       data: { resume },
     });
   } catch (err) {
-    if (req.file && fs.existsSync(req.file.path)) {
-      try {
-        fs.unlinkSync(req.file.path);
-      } catch {
-        // ignore cleanup errors
-      }
-    }
     next(err);
   }
 };
