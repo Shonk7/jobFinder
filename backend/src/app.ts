@@ -22,16 +22,31 @@ app.use(
   })
 );
 
-const allowedOrigins = [
-  process.env.FRONTEND_URL || 'http://localhost:3000',
+const configuredOrigins = (process.env.FRONTEND_URL || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+const allowedOrigins = new Set([
+  ...configuredOrigins,
   'http://localhost:3000',
   'http://localhost:3001',
-];
+  'https://job-finder-qraj.vercel.app',
+]);
+
+const isAllowedVercelOrigin = (origin: string): boolean => {
+  try {
+    const parsed = new URL(origin);
+    return parsed.protocol === 'https:' && parsed.hostname.endsWith('.vercel.app');
+  } catch {
+    return false;
+  }
+};
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (!origin || allowedOrigins.has(origin) || isAllowedVercelOrigin(origin)) {
         callback(null, true);
       } else {
         callback(new Error(`CORS policy: origin ${origin} not allowed`));
