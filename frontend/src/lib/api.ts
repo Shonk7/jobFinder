@@ -20,7 +20,7 @@ const api: AxiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 30000,
+  timeout: 65000,
 })
 
 // Track if we're currently refreshing the token to prevent loops

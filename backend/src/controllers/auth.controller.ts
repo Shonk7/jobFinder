@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { prisma } from '../config/database';
+import { logger } from '../middleware/errorHandler';
 import {
   generateAccessToken,
   generateRefreshToken,
@@ -65,7 +66,12 @@ export const register = async (
       },
     });
 
-    await sendVerificationEmail(email, verificationToken);
+    void sendVerificationEmail(email, verificationToken).catch((emailErr) => {
+      logger.error('Failed to send verification email', {
+        to: email,
+        error: emailErr instanceof Error ? emailErr.message : String(emailErr),
+      });
+    });
 
     const accessToken = generateAccessToken(user.id, user.email);
     const refreshToken = generateRefreshToken(user.id, user.email);
@@ -366,7 +372,12 @@ export const resendVerification = async (
       },
     });
 
-    await sendVerificationEmail(user.email, verificationToken);
+    void sendVerificationEmail(user.email, verificationToken).catch((emailErr) => {
+      logger.error('Failed to resend verification email', {
+        to: user.email,
+        error: emailErr instanceof Error ? emailErr.message : String(emailErr),
+      });
+    });
 
     res.status(200).json({
       status: 'success',

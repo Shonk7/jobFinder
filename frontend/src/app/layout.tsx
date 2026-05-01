@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
+import BackendWarmup from '@/components/system/BackendWarmup'
 
 export const metadata: Metadata = {
   title: {
@@ -50,6 +51,7 @@ export default function RootLayout({
         />
       </head>
       <body className="bg-background text-text font-body antialiased">
+        <BackendWarmup />
         {children}
       </body>
     </html>

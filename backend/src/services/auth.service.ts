@@ -57,9 +57,19 @@ export const sendVerificationEmail = async (
     return;
   }
 
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    logger.warn('SMTP not configured, skipping verification email send', {
+      to: email,
+    });
+    return;
+  }
+
   const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST || 'smtp.mailtrap.io',
     port: parseInt(process.env.SMTP_PORT || '587', 10),
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
@@ -113,9 +123,19 @@ export const sendPasswordResetEmail = async (
     return;
   }
 
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    logger.warn('SMTP not configured, skipping password reset email send', {
+      to: email,
+    });
+    return;
+  }
+
   const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST || 'smtp.mailtrap.io',
     port: parseInt(process.env.SMTP_PORT || '587', 10),
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
